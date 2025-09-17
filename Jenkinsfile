@@ -50,7 +50,8 @@ pipeline {
                     }
                 }
 
-                // stage('E2E') {
+                // Fails for no reason, I dunno whats wrong and how to fix
+                // stage('Production E2E') {
                 //     agent {
                 //         docker {
                 //             image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
@@ -76,7 +77,25 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy staging') {
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true
+                }
+            }
+            steps {
+                sh '''
+                    npm install netlify-cli@20.1.1
+                    node_modules/.bin/netlify --version
+                    echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
+                    node_modules/.bin/netlify status
+                    node_modules/.bin/netlify deploy --dir=build
+                '''
+            }
+        }
+
+        stage('Deploy production') {
             agent {
                 docker {
                     image 'node:18-alpine'
