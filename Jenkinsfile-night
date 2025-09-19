@@ -1,0 +1,17 @@
+pipeline {
+    agent any
+
+    environment {
+        NETLIFY_SITE_ID = '2139a368-2508-49e9-acab-8c2a77fc07d4'
+        NETLIFY_AUTH_TOKEN = credentials('netlify-token')
+    }
+
+    stages {
+
+        stage('Docker') {
+            steps {
+                sh 'docker build -t my-playwright .'
+            }
+        }
+    }
+}
