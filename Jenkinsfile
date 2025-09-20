@@ -47,15 +47,14 @@ pipeline {
             }
         }
 
-            steps {
-                sh '''
-                    node --version
-                    netlify --version
-                    echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
-                    netlify status
-                    netlify deploy --dir=build --prod
-                '''
-            }
+        steps {
+            sh '''
+                node --version
+                netlify --version
+                echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
+                netlify status
+                netlify deploy --dir=build --prod
+            '''
         }
     }
 }
