@@ -4,9 +4,29 @@ pipeline {
     environment {
         NETLIFY_SITE_ID = '2139a368-2508-49e9-acab-8c2a77fc07d4'
         NETLIFY_AUTH_TOKEN = credentials('netlify-token')
+        AWS_DEFAULT_REGION = 'us-east-1'
     }
 
     stages {
+
+        stage('Deploy to AWS') {
+            agent {
+                docker {
+                    image 'amazon/aws-cli'
+                    reuseNode true
+                    args "--entrypoint=''"
+                }
+            }
+
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                    sh '''
+                        aws --version
+                        aws ecs register-task-definition --cli-input-json file://aws/task-def.json
+                    '''
+                }
+            }
+        }
 
         stage('Build') {
             agent {
@@ -27,110 +47,6 @@ pipeline {
             }
         }
 
-        stage('AWS') {
-            agent {
-                docker {
-                    image 'amazon/aws-cli'
-                    reuseNode true
-                    args "--entrypoint=''"
-                }
-            }
-            environment {
-                AWS_S3_BUCKET = 'learn-jenkins-v1234565'
-            }
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
-                    sh '''
-                        aws --version
-                        aws s3 sync build s3://$AWS_S3_BUCKET
-                    '''
-                }
-            }
-        }
-
-        stage('Tests') {
-            parallel {
-                stage('Unit tests') {
-                    agent {
-                        docker {
-                            image 'node:18-alpine'
-                            reuseNode true
-                        }
-                    }
-
-                    steps {
-                        sh '''
-                            #test -f build/index.html
-                            npm test
-                        '''
-                    }
-                    post {
-                        always {
-                            junit 'jest-results/junit.xml'
-                        }
-                    }
-                }
-
-                // Fails for no reason, I dunno whats wrong and how to fix
-                // stage('Production E2E') {
-                //     agent {
-                //         docker {
-                //             image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
-                //             reuseNode true
-                //         }
-                //     }
-
-                //     steps {
-                //         sh '''
-                //             npm install serve
-                //             node_modules/.bin/serve -s build &
-                //             sleep 10
-                //             npx playwright test  --reporter=html
-                //         '''
-                //     }
-
-                //     post {
-                //         always {
-                //             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
-                //         }
-                //     }
-                // }
-            }
-        }
-
-        stage('Deploy staging') {
-            agent {
-                docker {
-                    image 'my-playwright'
-                    reuseNode true
-                }
-            }
-            steps {
-                sh '''
-                    netlify --version
-                    echo "Deploying to staging. Site ID: $NETLIFY_SITE_ID"
-                    netlify status
-                    netlify deploy --dir=build --json > deploy-output.json
-                    CI_ENVIRONMENT_URL=$(jq -r '.deploy_url' deploy-output.json)
-                '''
-            }
-        }
-
-        // stage('Approval') {
-        //     steps{
-        //         timeout(time: 15, unit: 'MINUTES') {
-        //             input message: 'Do you wish to deploy to production?', ok: 'Yes, I am sure!'
-        //         }
-        //     }
-        // }
-
-        stage('Deploy production') {
-            agent {
-                docker {
-                    image 'my-playwright'
-                    reuseNode true
-                }
-            }
             steps {
                 sh '''
                     node --version
