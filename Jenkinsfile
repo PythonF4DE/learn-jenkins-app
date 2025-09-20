@@ -20,7 +20,7 @@ pipeline {
                     sh '''
                         aws --version
                         echo "Hello S3!" > index.html
-                        aws s3 opy test.txt s3://learn-jenkins-v1234565/test2.txt
+                        aws s3 copy test.txt s3://learn-jenkins-v1234565/test2.txt
                     '''
                 }
             }
