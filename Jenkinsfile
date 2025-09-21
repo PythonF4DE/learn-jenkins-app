@@ -41,6 +41,7 @@ pipeline {
 
             steps {
                 sh '''
+                    yum install amazon-linux-extras
                     amazon-linux-extras install docker
                     docker build -t myjenkinsapp .
                 '''
@@ -62,7 +63,6 @@ pipeline {
                         aws --version
                         yum install jq -y
                         LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-def.json | jq '.taskDefinition.revision')
-                        echo $LATEST_TD_REVISION
                         aws ecs update-service --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE --task-definition $AWS_ECS_TD:$LATEST_TD_REVISION
                         aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER --services $AWS_ECS_SERVICE
                     '''
